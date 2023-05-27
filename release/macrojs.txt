@@ -1,0 +1,740 @@
+﻿//js替换文档说明：
+//每组查找语句以空行、区段标记、以及注释分隔，
+//第一行为查找内容，第二行为替换内容，第三行为可选的替换条件。
+//此外，上述的区段标记为首尾是方括号，外不包含空格的字段，空行包括了由纯空白符组成的行，
+//注释支持//和/*在行首，*/在行尾（后可有若干空格）的情形。
+//替换内容为空或纯空白字符（空格、制表符）集合时请在内容开头加上单个\字符，
+//不需要重用的类（如文档类）请将package、import和class删去以避免被转成js类的形式。
+
+//扩展转义字符说明：
+//\1-\9（在替换内容中）：查找内容中括号内的变量（按顺序从1开始）；
+//\0,\&（在替换内容中）：整个查找内容
+//\/, \*, \[, \], \\, \$ （在替换内容中）：反斜杠后的原始字符
+//\a（在替换内容开头）：解除常量掩码/@[a-z][0-9]+#/的保护（替换成原字符），常用于用字符串访问变量的情形；
+//\c（仅在class和class after defines区段中）：表示类名称；
+//\C（仅在class和class after defines区段中）：表示构造函数的形参表（未去除数据类型和默认值）
+//\e（仅在class和class after defines区段中）：表示继承的类名称；
+//\E（仅在class和class after defines区段中）：表示调用super函数的实参表
+//\u（在替换内容开头）：在替换后追加独一无二的一个全局变量或公有的成员变量；
+//\v（在替换内容开头）：在替换后追加一个全局变量或公有的成员变量；
+//（注：用\u或\v时，声明的变量为替换后字符串的第一个等号或分号前的字符(\v)，或字符加编号后缀(\u)
+//若第一个分号在第一个等号前，则将这个分号前的语句删除）
+//\V（在替换内容开头）：将该行定义的变量、函数标记为类的公有成员（局部变量会被自动忽略）。
+
+//杂项：
+//Graphics对象最好单独建立一个引用来提升效率，
+//如在设定了宽度后加上shape.graphics=shape.getContext("2d")，
+//其中画线时，stroke函数需要在最后，下一个beginPath前，或下一个对样式的设置语句前手动添加；
+//需要做alpha(opacity)渐变时要事先显式赋初值为1。
+[as2]
+//as2模式时执行的替换
+(\W|\s)add(\W|\s)
+\1+\2
+
+(\W|\s)and(\W|\s)
+\1==\2
+
+(\W|\s)eq(\W|\s)
+\1==\2
+
+(\W|\s)ge(\W|\s)
+\1>=\2
+
+(\W|\s)gt(\W|\s)
+\1>\2
+
+(\W|\s)le(\W|\s)
+\1<=\2
+
+(\W|\s)lt(\W|\s)
+\1<\2
+
+(\W|\s)ne(\W|\s)
+\1!=\2
+
+(\W|\s)not(\W|\s)
+\1!\2
+
+(\W|\s)or(\W|\s)
+\1||\2
+
+<>
+!=
+
+\s+([^A-Za-z0-9_@])
+\1
+
+([^A-Za-z0-9_@])\s+
+\1
+
+\._(\w)
+.\1
+
+\.xmouse(\W)
+.mouseX\1
+
+\.ymouse(\W)
+.mouseY\1
+
+\.xscale(\W)
+.scaleX\1
+
+\.yscale(\W)
+.scaleY\1
+
+(^|[^A-Za-z0-9_.])getProperty((\w+),(\w+))
+\1\2.\3
+
+(^|[^A-Za-z0-9_.])setProperty((\w+),(\w+),(\w))
+\1\2.\3=\4
+
+^on\(release\)\{
+.onmouseup=function(){
+on
+
+^on\(press\)\{
+.onmousedown=function(){
+on
+
+^on\(release\)\{
+.onmouseup=function(){
+on
+
+^on\(rollOut\)\{
+.ommouseout=function(){
+on
+
+^on\(rollOver\)\{
+.ommouseover=function(){
+on
+
+^onClipEvent\(mouseMove\)\{
+.onmousedown=function(){\n/*with*/
+onClipEvent
+
+^onClipEvent\(mouseMove\)\{
+.onmousemove=function(){\n/*with*/
+onClipEvent
+
+^onClipEvent\(mouseDown\)\{
+.onmousedown=function(){\n/*with*/
+onClipEvent
+
+^onClipEvent\(mouseUp\)\{
+.onmouseup=function(){\n/*with*/
+onClipEvent
+
+(^|\W)Key\.isDown\(([^)]+)\)
+\1keyCode==(\2)
+
+(tellTarget\(@s[0-9]+#\))
+\a\1
+tellTarget
+
+tellTarget\(\"(.+)\"\)
+with(\1)
+tellTarget
+
+^(\w+)\.onEnterFrame=function\(([^)]*)\)
+\uon\1_enterFrame;\1.onEnterFrame=on\1_enterFrame;\nfunction on\1_enterFrame(\2)
+
+^(\w+)\.onEnterFrame=(\w+);
+\v\1_intervalID;\nif(\1_intervalID)\1_intervalID=clearInterval(\1_intervalID);\n\1_intervalID=setInterval(\2,20);
+
+[general]
+//一般情况
+(^|[^.A-Za-z0-9_])random\(([^)]+)\)
+\1parseInt(Math.random()*\2)
+random
+
+(^|[^.A-Za-z0-9_])int\(
+\1parseInt(
+int
+
+//(^|[^.A-Za-z0-9_])Number\(
+//\1parseFloat(
+//Number
+
+^([^.=]+\.doubleClickEnabled\=)
+\/\/\1
+
+^([^.=]+\.mouseEnabled\=)
+\/\/\1
+
+(^|this\.)addEventListener\(Event\.ENTER_FRAME,(\w+)\)
+\v\2_intervalID=setInterval(\2,50)
+addEventListener
+
+(^|\W)stage\.addEventListener\(Event\.ENTER_FRAME,(\w+)\)
+\vstage_\2_intervalID;\1\2_intervalID=setInterval(\2,50)
+addEventListener
+
+(^|this\.)addEventListener\(Event\.ADDED_TO_STAGE,(\w+)\)
+window.onload=\2
+addEventListener
+
+\.addEventListener\(MouseEvent\.CLICK,(\w+)\)
+.onclick=\1
+addEventListener
+
+\.addEventListener\(MouseEvent\.DOUBLE_CLICK,(\w+)\)
+.ondblclick=\1
+addEventListener
+
+\.addEventListener\(MouseEvent\.MOUSE_DOWN,(\w+)\)
+.onmousedown=\1
+addEventListener
+
+\.addEventListener\(MouseEvent\.MOUSE_UP,(\w+)\)
+.onmouseup=\1
+addEventListener
+
+\.addEventListener\(MouseEvent\.MOUSE_MOVE,(\w+)\)
+.onmousemove=\1
+addEventListener
+
+\.addEventListener\(MouseEvent\.ROLL_OVER,(\w+)\)
+.onmouseover=\1
+addEventListener
+
+\.addEventListener\(MouseEvent\.ROLL_OUT,(\w+)\)
+.onmouseout=\1
+addEventListener
+
+\.addEventListener\(MouseEvent\.MOUSE_OVER,(\w+)\)
+.onmouseover=\1
+addEventListener
+
+\.addEventListener\(MouseEvent\.MOUSE_OUT,(\w+)\)
+.onmouseover=\1
+addEventListener
+
+\.addEventListener\(MouseEvent\.MOUSE_WHEEL,(\w+)\)
+.onmousewheel=\1
+addEventListener
+
+\.addEventListener\(KeyboardEvent\.KEY_DOWN,(\w+)\)
+.onkeydown=\1
+addEventListener
+
+\.addEventListener\(KeyboardEvent\.KEY_UP,(\w+)\)
+.onkeyup=\1
+addEventListener
+
+(^|this\.)removeEventListener\(Event\.ENTER_FRAME,(\w+)\)
+\2_intervalID=clearInterval(\2_intervalID)
+removeEventListener
+
+(^|\W)stage\.removeEventListener\(Event\.ENTER_FRAME,(\w+)\)
+\1stage_\2_intervalID=clearInterval(stage_\2_intervalID)
+removeEventListener
+
+(^|this\.)removeEventListener\(Event\.ADDED_TO_STAGE,(\w+)\)
+window.onload=null
+removeEventListener
+
+\.removeEventListener\(MouseEvent\.CLICK,(\w+)\)
+.onclick=null
+removeEventListener
+
+\.removeEventListener\(MouseEvent\.DOUBLE_CLICK,(\w+)\)
+.ondblclick=null
+removeEventListener
+
+\.removeEventListener\(MouseEvent\.MOUSE_DOWN,(\w+)\)
+.onmousedown=null
+removeEventListener
+
+\.removeEventListener\(MouseEvent\.MOUSE_UP,(\w+)\)
+.onmouseup=null
+removeEventListener
+
+\.removeEventListener\(MouseEvent\.MOUSE_MOVE,(\w+)\)
+.onmousemove=null
+removeEventListener
+
+\.removeEventListener\(MouseEvent\.ROLL_OVER,(\w+)\)
+.onmouseover=null
+removeEventListener
+
+\.removeEventListener\(MouseEvent\.ROLL_OUT,(\w+)\)
+.onmouseout=null
+removeEventListener
+
+\.removeEventListener\(MouseEvent\.MOUSE_OVER,(\w+)\)
+.onmouseover=null
+removeEventListener
+
+\.removeEventListener\(MouseEvent\.MOUSE_OUT,(\w+)\)
+.onmouseover=null
+removeEventListener
+
+\.removeEventListener\(MouseEvent\.MOUSE_WHEEL,(\w+)\)
+.onmousewheel=null
+removeEventListener
+
+\.removeEventListener\(KeyboardEvent\.KEY_DOWN,(\w+)\)
+.onkeydown=null
+removeEventListener
+
+\.removeEventListener\(KeyboardEvent\.KEY_UP,(\w+)\)
+.onkeyup=null
+removeEventListener
+
+\w+.keyCode(\W)
+keyCode\1
+
+(^|\s)function (\w+)\((\w+)\:(Event|MouseEvent)(\=null)?\)(\:\w+)?\{
+\1function \2(\3:\4){\n\3=\3||window.event;
+function
+
+(^|\s)function (\w+)\((\w+)\:(KeyboardEvent)(\=null)?\)(\:\w+)?\{
+\1function \2(\3:\4){\n\3=\3||window.event;\nvar keyCode:int=window.event?event.keyCode:event.which;
+function
+
+(\w+)\.target(\W)
+(\1.target||\1.srcElement)\2
+
+(\w+)\.currentTarget(\W)
+(\1.currentTarget||\1.srcElement)\2
+
+(\w+)\.delta(\W)
+(\1.detail||\1.wheelDelta/40)\2
+
+\.x(\W)
+.offsetLeft\1
+
+\.y(\W)
+.offsetTop\1
+
+\.text(\W)
+.value\1
+
+\.alpha\=([^=])
+.style.opacity=\1
+alpha
+
+^(.+)\.alpha\+\=
+\1.style_opacity=Number(\1.style_opacity)+
+alpha
+
+^(.+)\.alpha\-\=
+\1.style_opacity=Number(\1.style_opacity)-
+alpha
+
+(([A-Za-z0-9_""@#]|\[|\])+)\.alpha(\W)
+Number(\1.style_opacity)\3
+alpha
+
+\.htmlText(\W)
+.innerHtml\1
+
+(^|this\.)addChild\((\w+)\)
+addChild(\2,document.body)
+Child
+
+(^|this\.)addChildAt\((\w+),
+addChildAt(\2,document.body,
+Child
+
+(^|this\.)removeChild\((\w+)\)
+removeChild(\2,document.body)
+Child
+
+^(.+)\.addChild\((\w+)\)
+addChild(\2,\1)
+Child
+
+^(.+)\.addChildAt\((\w+),
+addChildAt(\2,\1,
+Child
+
+^(.+)\.removeChild\((\w+)\)
+removeChild(\2,\1)
+Child
+
+^(.+)\.graphics\.clear\(\);$
+\1.graphics.clearRect(0,0,\1.width,\1.height);\n\1.graphics.globalAlpha=1;\n\1.graphics.beginPath();
+graphics
+
+^(.+)\.graphics\.beginFill\((.+),(.+)\);$
+\1.graphics.fillStyle=toColorString(\2);\n\1.graphics.globalAlpha=\3;\n\1.graphics.beginPath();
+graphics
+
+^(.+)\.graphics\.beginFill\((.+)\);$
+\1.graphics.fillStyle=toColorString(\2);\n\1.graphics.globalAlpha=1;\n\1.graphics.beginPath();
+graphics
+
+^(.+)\.graphics\.endFill\(\);$
+\n\1.graphics.fill();
+graphics
+
+^(.+)\.graphics\.lineStyle\((.+),(.+),(.+)\);$
+\1.graphics.lineWidth=\2;\n\1.graphics.strokeStyle=toColorString(\3);\n\1.graphics.globalAlpha=\4;
+graphics
+
+^(.+)\.graphics\.lineStyle\((.+),(.+)\);$
+\1.graphics.lineWidth=\2;\n\1.graphics.strokeStyle=toColorString(\3);\n\1.graphics.globalAlpha=1;
+graphics
+
+^(.+)\.graphics\.lineStyle\((.+)\);$
+\1.graphics.lineWidth=\2;\n\1.graphics.strokeStyle="#000000";\n\1.graphics.globalAlpha=1;
+graphics
+
+^(.+)\.graphics\.drawCircle\((.+),(.+),(.+)\);$
+\1.graphics.arc(\2,\3,\4,0,2*Math.PI);
+graphics
+
+^(.+)\.graphics\.drawEllipse\((.+),(.+),(.+),(.+)\);$
+\1.graphics.transfrom(1/(\4),0,0,1/(\5),-((\2)+0.5*(\4))/(\4),-((\3)+0.5*(\5))/(\5));\n\1.graphics.arc(0,0,1,0,2*Math.PI);\n\1.graphics.transfrom((\4),0,0,(\5),(\2)+0.5*(\4),(\3)+0.5*(\5));
+graphics
+
+^(.+)\.graphics\.drawRect\((.+),(.+),(.+),(.+)\);$
+\1.graphics.rect(\2,\3,\4,\5);
+graphics
+
+^(.+)\.graphics\.curveTo\(
+\1.graphics.quadraticCurveTo(
+graphics
+
+^(.+)\.graphics\.cubicCurveTo\(
+\1.graphics.bezierCurveTo(
+graphics
+
+
+
+[after defines]
+//变量替换后
+(^|\W)new Vector\.<[A-Za-z0-9_\.<>\*]+>\((.+),(.+)\)
+\1new Array(\2)
+
+(^|\W)new Vector\.<[A-Za-z0-9_\.<>\*]+>\((.+)\)
+\1new Array(\2)
+
+(^|\W)new<[A-Za-z0-9_\.<>\*]+>\[
+\1[
+
+\.offsetLeft\=([^=].*);
+.style.left=(\1)+"px";
+
+\.offsetTop\=([^=].*);
+.style.top=(\1)+"px";
+
+^(.+)\.offsetLeft\+\=(.+);
+\1.style.left=(\1.offsetLeft+(\2))+"px";
+
+^(.+)\.offsetTop\+\=(.+);
+\1.style.top=(\1.offsetTop+(\2))+"px";
+
+^(.+)\.offsetLeft\-\=(.+);
+\1.style.left=(\1.offsetLeft-(\2))+"px";
+
+^(.+)\.offsetTop\-\=(.+);
+\1.style.top=(\1.offsetTop-(\2))+"px";
+
+\.style_opacity
+.style.opacity
+
+//\.graphics([.;])
+//.graphics\1
+
+\=new (Shape|Sprite|MovieClip)(\(\);|;)
+=document.createElement("canvas");
+
+[class after defines]
+(^|.*\W)(var \w+)\:int([,;])
+\1\2:int=0\3
+
+(,\w+)\:int([,;])
+\1:int=0\2
+(^|\W)var\s
+
+(^|.*\W)(var \w+)\:uint([,;])
+\1\2:uint=0\3
+
+(,\w+)\:uint([,;])
+\1:uint=0\2
+(^|\W)var\s
+
+[as2 after defines]
+//as2模式时。变量替换后时的情况
+(^|.*\W)(var \w+)\:Boolean([,;])
+\1\2:Boolean=undefined\3
+
+(,\w+)\:Boolean([,;])
+\1:Boolean=undefined\2
+(^|\W)var\s
+
+[class after defines]
+//变量替换后
+(^|.*\W)(var \w+)\:Boolean([,;])
+\1\2:Boolean=false\3
+
+(,\w+)\:Boolean([,;])
+\1:Boolean=false\2
+(^|\W)var\s
+
+[as2 after defines]
+//as2模式时。变量替换后时的情况
+(^|.*\W)(var \w+)\:Boolean=undefined([,;])
+\1\2:Boolean\3
+
+(,\w+)\:Boolean=undefined([,;])
+\1:Boolean\2
+(^|\W)var\s
+
+[class]
+//as为类时的情况
+//^public var 
+//this.
+//var
+[as2]
+//as版本为2.0时的情况
+
+
+
+[function based class]
+//as为类时，变量替换前的工作（function版）
+//继承功能正在开发中，可暂时用复合来代替
+(^|public |protected |private |internal )(var .+)
+\V\2
+
+(^|public |protected |private |internal )(function \w+\()
+\V\2
+
+(^|.*\s)(static var .+)
+\V\2
+
+(^|.*\s)(static function \w+\()
+\V\2
+
+(^|.*\s)function (set|get) (\w+)\(
+public function \2_\3(
+
+[function based class after defines]
+//as为类时，变量替换后的工作（function版）
+^public class (\w+)( extends \w+)?\{
+public function \1(\C){
+
+[object based class]
+//as为类时，变量替换前的工作（Object版）
+//继承功能正在开发中，可暂时用复合来代替
+//要求有构造方法，且在所有变量声明(无const)后，在其他函数声明前
+//需要事先将const常量转成var变量，在转换后要将外面调用的new方法改成成员方法createNew。
+(^|.*\s)(var .+)
+\V\2
+
+(^|.*\s)(function \w+\()
+\V\2
+
+(^|.*\s)function (set|get) (\w+)\(
+function \2_\3(
+
+(^|.*\W)function \c\((.*)\)(\:[A-Za-z0-9_\.<>\*]+)?\{
+function createNew(\2){\nvar obj={};\nobj.prototype=this;\nobj.create_\c(\2);\nreturn obj;\n}\nfunction create_\c(\2){
+
+[object based class after defines]
+//as为类时，变量替换后的工作（Object版）
+//要求有构造方法，且在所有变量声明(无const)后，在其他函数声明前
+//需要事先将const常量转成var变量，在转换后要将外面调用的new方法改成成员方法createNew。
+(^|.*\s)class (\w+)( extends \w+)?\{
+var \2={
+
+[after defines]
+//变量替换后
+
+^import (flash|fl|flashx)\..*
+\
+
+^const\s
+var 
+
+(\W|\s)is(\W|\s)
+\1 instanceof \2
+
+(\s)as (\w+)\)
+)
+
+(\W)as (\w+)\)
+\1)
+
+(^|.*\W)(var \w+)\:[A-Za-z0-9_\.<>\*]+
+\1\2
+
+(,\w+)\:[A-Za-z0-9_\.<>\*]+
+\1
+(^|\W)var\s
+ 
+([,(]\w+)\:[A-Za-z0-9_\.<>\*]+
+\1
+(^|\W)function\W
+ 
+\)\:[A-Za-z0-9_\.<>\*]+\{
+){
+(^|\W)function\W
+
+(^|\W)function ([A-Za-z0-9_\.]+)\((\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\5\nif(arguments.length<1)\3=\4;
+function
+
+(^|\W)function ([A-Za-z0-9_\.]+)\((\w+,)(\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\4\6\nif(arguments.length<2)\4=\5;
+function
+
+(^|\W)function ([A-Za-z0-9_\.]+)\((\w+,\w+,)(\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\4\6\nif(arguments.length<3)\4=\5;
+function
+
+(^|\W)function ([A-Za-z0-9_\.]+)\((\w+,\w+,\w+,)(\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\4\6\nif(arguments.length<4)\4=\5;
+function
+//
+(^|\W)function ([A-Za-z0-9_\.]+)\((\w+\,\w+,\w+,\w+,)(\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\4\6\nif(arguments.length<5)\4=\5;
+function
+
+(^|\W)function ([A-Za-z0-9_\.]*)\((\w+,\w+,\w+,\w+,\w+,)(\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\4\6\nif(arguments.length<6)\4=\5;
+function
+
+(^|\W)function ([A-Za-z0-9_\.]+)\((\w+,\w+,\w+,\w+,\w+,\w+,)(\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\4\6\nif(arguments.length<7)\4=\5;
+function
+
+(^|\W)function ([A-Za-z0-9_\.]+)\((\w+,\w+,\w+,\w+,\w+,\w+,\w+,)(\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\4\6\nif(arguments.length<8)\4=\5;
+function
+
+(^|\W)function ([A-Za-z0-9_\.]+)\((\w+,\w+,\w+,\w+,\w+,\w+,\w+,\w+,)(\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\4\6\nif(arguments.length<9)\4=\5;
+function
+
+(^|\W)function ([A-Za-z0-9_\.]+)\((\w+,\w+,\w+,\w+,\w+,\w+,\w+,\w+,\w+,)(\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\4\6\nif(arguments.length<10)\4=\5;
+function
+
+(^|\W)function ([A-Za-z0-9_\.]+)\((\w+,\w+,\w+,\w+,\w+,\w+,\w+,\w+,\w+,\w+,)(\w+)\=([A-Za-z0-9_@#]+)(.*\{)
+\1function \2(\3\4\6\nif(arguments.length<11)\4=\5;
+function
+
+
+[function based class after defines]
+//as为类时，变量替换后的工作（function版）
+^(var this\.\w+)\:[A-Za-z0-9_\.<>\*]+
+\1
+
+,this\.(\w+)\:[A-Za-z0-9_\.<>\*]+
+,this.\1
+^var
+
+^(static var \c\.\w+)\:[A-Za-z0-9_\.<>\*]+
+\1
+
+,\c\.(\w+)\:[A-Za-z0-9_\.<>\*]+
+,\c.\1
+^static var
+
+^var this\.
+this.
+
+^static var \c\.
+\c.
+
+^function \c\((.*)\)\{
+\nthis.createNew=createNew0;\nthis.createNew(\1);\nfunction createNew0(\1){
+
+^function this\.(\w+)\(
+\nthis.\1=function(
+
+^static function \c\.(\w+)\(
+\n\c.\1=function(
+
+^public function (set_|get_)(\w+)\(
+\nthis.\1\2=function(
+
+^super\(
+\c.prototype=new \e(
+
+(^|[^;]*\s)var\s
+var 
+
+(^|[^;]*\s)function\s
+\nfunction 
+
+[object based class after defines]
+//as为类时，变量替换后的工作（Object版）(要求有构造方法，且在所有变量声明(无const)后，在其他函数声明前)
+//需要将外面调用的new方法改成成员方法createNew
+(^|.*\W)(var this\.)(\w+)\:[A-Za-z0-9_\.<>\*]+
+\2\3
+
+,this\.(\w+)\:[A-Za-z0-9_\.<>\*]+
+,this.\1
+^var
+
+;$
+,
+^var this\.
+
+,this\.(\w+)\=
+,\1:
+^var
+
+,this\.(\w+)
+,\1
+^var
+
+^var this\.(\w+)\=
+\1:
+
+^var this\.(\w+)
+\1
+
+([(,]\w+)[^),]+
+\1
+^obj.create_\c\(
+
+(^|.*\s)function (createNew)\((.*)\)\{
+\n\2:function(\3)\n{
+
+(^|.*\s)function (create_\c)\((.*)\)\{
+,\n\2:function(\3)\n{
+
+(^|.*\s)function this\.(\w+)\((.*)\)\{
+,\n\2:function(\3)\n{
+
+(^|.*\s)function (set_|get_)(\w+)\((.*)\)\{
+,\n\2\3:function(\4)\n{
+
+^super\(
+\c.prototype=new \e(
+
+[as2 after defines]
+//as2模式时。变量替换后时的情况
+
+[functions]
+//函数替换
+removeMovieClip removeChild
+//duplicateMovieClip addChildAt
+//attachMovie addChildAt
+
+//int parseInt
+//Number parseFloat
+//random parseInt(Math.random()*
+
+[varibles]
+//变量替换
+stage document
+//MATH matt
+//con3 con4
+
+[member varibles]
+//类的成员变量替换
+Rectangle.offsetLeft Rectangle.x
+Rectangle.offsetTop Rectangle.y
+Point.offsetLeft Point.x
+Point.offsetTop Point.y
+	
+[member functions]
+//类的成员函数替换
+//MovieClip.fa MovieClip.fc
+//MovieClip.fb MovieClip.fd
